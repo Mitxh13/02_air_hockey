@@ -9,6 +9,8 @@ a goal is incomplete. That's what Tasks 2-4 fix/add.
 
 import random
 
+import pygame
+
 from game.puck import Puck
 from game.paddle import Paddle
 from game.ai import ComputerAI
@@ -19,6 +21,7 @@ PLAYER_SPEED = 6
 PUCK_RADIUS = 12
 PADDLE_RADIUS = 28
 INITIAL_PUCK_SPEED = 4.5
+MATCH_DURATION = 30  # seconds
 
 
 class GameEngine:
@@ -41,6 +44,9 @@ class GameEngine:
         self.player_score = 0
         self.computer_score = 0
 
+        self.start_ticks = pygame.time.get_ticks()
+        self.game_over = False
+
     def _launch_puck(self):
         angle_choices = [0.3, 0.6, -0.3, -0.6]
         direction = random.choice([-1, 1])
@@ -49,7 +55,6 @@ class GameEngine:
         self.puck.vy = INITIAL_PUCK_SPEED * vy_factor
 
     def handle_input(self, keys_pressed):
-        import pygame
         dx = dy = 0
         if keys_pressed[pygame.K_UP]:
             dy -= PLAYER_SPEED
@@ -61,7 +66,18 @@ class GameEngine:
             dx += PLAYER_SPEED
         self.player.move_by(dx, dy)
 
+    def time_remaining(self):
+        elapsed = (pygame.time.get_ticks() - self.start_ticks) / 1000.0
+        return max(0, MATCH_DURATION - elapsed)
+
     def update(self):
+        if self.game_over:
+            return
+
+        if self.time_remaining() <= 0:
+            self.game_over = True
+            return
+
         self.ai.update(self.computer, self.puck)
 
         self.puck.move()
@@ -103,3 +119,16 @@ class GameEngine:
         # Display scores
         renderer.draw_text(surface, font, f"Player: {self.player_score}", (WIDTH // 4 - 60, 2))
         renderer.draw_text(surface, font, f"Computer: {self.computer_score}", (3 * WIDTH // 4 - 70, 2))
+
+        # Display timer
+        remaining = int(self.time_remaining()) + 1 if not self.game_over else 0
+        renderer.draw_text(surface, font, f"Time: {remaining}s", (WIDTH // 2 - 40, 2))
+
+        # Display result when match is over
+        if self.game_over:
+            if self.player_score > self.computer_score:
+                renderer.draw_banner(surface, font, "Player Wins!")
+            elif self.computer_score > self.player_score:
+                renderer.draw_banner(surface, font, "Computer Wins!")
+            else:
+                renderer.draw_banner(surface, font, "Draw!")
