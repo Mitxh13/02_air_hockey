@@ -106,8 +106,7 @@ class GameEngine:
 
     def _reset_puck(self):
         self.puck.x, self.puck.y = WIDTH / 2, HEIGHT / 2
-        self.puck.vx = 0
-        self.puck.vy = 0
+        self._launch_puck()
 
     def draw(self, surface, font):
         from game import renderer
